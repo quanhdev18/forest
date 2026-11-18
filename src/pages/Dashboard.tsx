@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { addDays } from 'date-fns'
-import { AlertTriangle, BellRing, CalendarDays, Check, Headphones, Flame, Play, Pause } from 'lucide-react'
+import { AlertTriangle, BellRing, CalendarDays, Check, Coins, Headphones, Flame, Play, Pause } from 'lucide-react'
 import { useStore } from '../store'
+import { refreshFx, useFxStatus } from '../lib/fx'
 import { streak } from './Habits'
 import { whenLabel } from './Reminders'
 import { useRelax } from './Relax'
@@ -8,6 +10,48 @@ import { useSync } from '../lib/sync'
 import { cx, dkey, fmt, money } from '../lib/utils'
 
 const go = (r: string) => (location.hash = '#/' + r)
+
+/** Quy đổi USD → VND theo tỷ giá thế giới lấy tự động (không chỉnh tay) */
+function FxPanel() {
+  const fx = useStore((s) => s.fx)
+  const { loading, error } = useFxStatus()
+  const [usd, setUsd] = useState('100')
+  const amount = Number(usd.replace(',', '.')) || 0
+  const hasRate = fx.usdVnd > 0
+
+  return (
+    <div className="glass panel" style={{ gridColumn: 'span 4' }}>
+      <h3><Coins size={18} /> Tỷ giá USD → VND</h3>
+      <div className="small muted" style={{ marginTop: -6 }}>
+        {hasRate ? (
+          <>1 USD = {money(Math.round(fx.usdVnd))}</>
+        ) : (
+          <>{error ? 'Chưa lấy được tỷ giá' : 'Đang lấy tỷ giá…'}</>
+        )}
+        {fx.updatedAt && <> · nguồn cập nhật {fmt(new Date(fx.updatedAt), 'HH:mm dd/MM')}</>}
+      </div>
+      {error && <div className="small" style={{ color: 'var(--wine)', marginTop: 4 }}>Lỗi: {error}</div>}
+      <div className="row" style={{ marginTop: 10 }}>
+        <button className="btn ghost" onClick={() => void refreshFx()} disabled={loading}>
+          {loading ? 'Đang tải…' : 'Làm mới tỷ giá'}
+        </button>
+      </div>
+      <div className="row" style={{ marginTop: 14 }}>
+        <input
+          className="grow"
+          inputMode="decimal"
+          value={usd}
+          onChange={(e) => setUsd(e.target.value)}
+          aria-label="Số USD"
+        />
+        <span className="small muted">USD</span>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginTop: 8 }}>
+        = {hasRate ? money(Math.round(amount * fx.usdVnd)) : '—'}
+      </div>
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const { items, reminders, habits, transactions, toggleHabit, upsertReminder } = useStore()
@@ -99,7 +143,13 @@ export default function Dashboard() {
               const on = !!h.log[today]
               return (
                 <div key={h.id} className="row">
-                  <button className={cx('hcell', on && 'on')} style={{ background: on ? h.color : undefined }} onClick={() => toggleHabit(h.id, today)}>
+                  <button
+                    className={cx('hcell', on && 'on')}
+                    style={{ background: on ? h.color : undefined, opacity: on ? undefined : 0.5, cursor: on ? undefined : 'not-allowed' }}
+                    disabled={!on}
+                    title={on ? undefined : 'Tích sau khi qua ngày hôm nay'}
+                    onClick={() => toggleHabit(h.id, today)}
+                  >
                     {on && <Check size={14} />}
                   </button>
                   <span className="grow" style={{ fontWeight: 600, textDecoration: on ? 'line-through' : undefined }}>{h.name}</span>
@@ -119,6 +169,8 @@ export default function Dashboard() {
           </button>
           <button className="btn ghost" onClick={() => go('relax')}>Mở Relax →</button>
         </div>
+
+        <FxPanel />
       </div>
     </>
   )

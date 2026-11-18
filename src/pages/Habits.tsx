@@ -55,13 +55,16 @@ export default function Habits() {
                 {days.map((d) => {
                   const k = dkey(d)
                   const on = !!h.log[k]
+                  // hôm nay chỉ được tích sau khi ngày đó đã qua
+                  const locked = isToday(d)
                   return (
                     <button
                       key={k}
                       className={cx('hcell', on && 'on', isToday(d) && 'today')}
-                      style={{ background: on ? h.color : undefined }}
-                      onClick={() => toggleHabit(h.id, k)}
-                      title={fmt(d, 'dd/MM')}
+                      style={{ background: on ? h.color : undefined, opacity: locked && !on ? 0.5 : undefined, cursor: locked ? 'not-allowed' : undefined }}
+                      onClick={() => !locked && toggleHabit(h.id, k)}
+                      disabled={locked && !on}
+                      title={locked ? 'Tích sau khi qua ngày hôm nay' : fmt(d, 'dd/MM')}
                     >
                       {on && <Check size={14} />}
                     </button>

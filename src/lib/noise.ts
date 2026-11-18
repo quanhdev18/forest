@@ -13,6 +13,14 @@ export const SOUNDS: { id: SoundId; name: string; desc: string }[] = [
   { id: 'wind', name: 'Gió rừng', desc: 'Gió thổi qua tán cây' },
 ]
 
+export type AlarmSound = 'bell' | 'chime' | 'soft' | 'digital'
+export const ALARM_SOUNDS: { id: AlarmSound; name: string }[] = [
+  { id: 'bell', name: 'Chuông ting ting' },
+  { id: 'chime', name: 'Chuỗi nốt nhạc' },
+  { id: 'soft', name: 'Chuông nhẹ' },
+  { id: 'digital', name: 'Bíp điện tử' },
+]
+
 type Color = 'white' | 'pink' | 'brown'
 
 function makeBuffer(ctx: AudioContext, color: Color, seconds = 6) {
@@ -161,21 +169,32 @@ class NoiseEngine {
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1)
   }
 
-  /** tiếng "ting" ngắn cho reminder / hết giờ pomodoro */
-  chime() {
+  /** tiếng "ting" ngắn cho pomodoro và reminder (mặc định: chuông) */
+  chime(sound: AlarmSound = 'bell') {
     const ctx = this.ensure()
-    ;[880, 1320].forEach((f, i) => {
+    const note = (freq: number, at: number, type: OscillatorType, dur: number, peak: number) => {
       const o = ctx.createOscillator()
       const g = ctx.createGain()
-      o.frequency.value = f
-      o.type = 'sine'
-      const t = ctx.currentTime + i * 0.18
+      o.frequency.value = freq
+      o.type = type
+      const t = ctx.currentTime + at
       g.gain.setValueAtTime(0, t)
-      g.gain.linearRampToValueAtTime(0.25, t + 0.02)
-      g.gain.exponentialRampToValueAtTime(0.001, t + 1.2)
+      g.gain.linearRampToValueAtTime(peak, t + 0.02)
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur)
       o.connect(g); g.connect(ctx.destination)
-      o.start(t); o.stop(t + 1.3)
-    })
+      o.start(t); o.stop(t + dur + 0.05)
+    }
+    if (sound === 'bell') { note(880, 0, 'sine', 1.2, 0.25); note(1320, 0.18, 'sine', 1.2, 0.25) }
+    else if (sound === 'chime') { [523, 659, 784].forEach((f, i) => note(f, i * 0.22, 'triangle', 0.9, 0.22)) }
+    else if (sound === 'soft') note(660, 0, 'sine', 2.2, 0.18)
+    else { note(1000, 0, 'square', 0.12, 0.08); note(1000, 0.2, 'square', 0.12, 0.08) }
+  }
+
+  /** Reminder: kêu 1 lần, hoặc 3 lần (cách nhau 4 giây) nếu `repeat` bật */
+  alarm(sound: AlarmSound, repeat: boolean) {
+    this.chime(sound)
+    if (!repeat) return
+    ;[4000, 8000].forEach((ms) => setTimeout(() => this.chime(sound), ms))
   }
 }
 

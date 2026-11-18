@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, CalendarDays, BellRing, CircleDollarSign, NotebookPen, Network, Trees,
-  Palette, Archive, Settings as Cog, Flame, Lightbulb,
+  Archive, Settings as Cog, Flame, Lightbulb,
 } from 'lucide-react'
 import { useStore } from './store'
 import { ForestBg } from './components/ForestBg'
@@ -10,6 +10,7 @@ import { useRelax } from './pages/Relax'
 import { noise } from './lib/noise'
 import { handleCallback } from './lib/spotify'
 import { initSync } from './lib/sync'
+import { startFxAutoRefresh } from './lib/fx'
 import { cx } from './lib/utils'
 import { addDays, addWeeks } from 'date-fns'
 
@@ -35,7 +36,6 @@ const NAV = [
   { id: 'notes', label: 'Quick Note', icon: NotebookPen, el: Notes },
   { id: 'project', label: 'Project', icon: Network, el: Projects },
   { id: 'relax', label: 'Relax', icon: Trees, el: Relax },
-  { id: 'theme', label: 'Màu & kính', icon: Palette, el: Settings },
 ] as const
 const BOTTOM = [
   { id: 'archive', label: 'Lưu trữ', icon: Archive, el: ArchivePage },
@@ -64,7 +64,8 @@ function useReminderWatcher() {
       for (const r of reminders) {
         if (r.done || new Date(r.at).getTime() > now || r.firedAt === r.at) continue
         push(`⏰ ${r.title}`, 'reminder')
-        noise.chime()
+        const st = useStore.getState().settings
+        noise.alarm(st.alarmSound ?? 'bell', !!st.alarmRepeat)
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('Forest – Nhắc việc', { body: r.title })
         }
@@ -116,6 +117,7 @@ export default function App() {
   useEffect(() => {
     handleCallback()
     initSync()
+    return startFxAutoRefresh()
   }, [])
 
   useEffect(() => {
@@ -127,7 +129,8 @@ export default function App() {
     r.setProperty('--wine', settings.accent)
   }, [settings])
 
-  const Page = ALL.find((n) => n.id === route)?.el ?? Dashboard
+  // link cũ #/theme (Màu & kính) nay nằm trong Cài đặt
+  const Page = ALL.find((n) => n.id === (route === 'theme' ? 'settings' : route))?.el ?? Dashboard
   const link = (n: (typeof ALL)[number]) => (
     <button key={n.id} className={cx('nav', route === n.id && 'active')} onClick={() => (location.hash = '#/' + n.id)}>
       <n.icon size={20} strokeWidth={2.2} /><span className="lbl">{n.label}</span>

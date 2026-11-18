@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
-import { Download, ImagePlus, Undo2, Upload } from 'lucide-react'
+import { BellRing, Download, ImagePlus, Play, Undo2, Upload } from 'lucide-react'
 import { Settings as S, useStore } from '../store'
 import { useToasts } from '../components/ui'
 import { CloudPanel } from '../components/CloudPanel'
+import { ALARM_SOUNDS, noise } from '../lib/noise'
 import { cx, dkey } from '../lib/utils'
 
 const ACCENTS = ['#6b1a24', '#1d1d1f', '#3f6d55', '#5d7f93', '#9a5b1f', '#6a4c93']
@@ -84,7 +85,7 @@ export default function Settings() {
 
   return (
     <>
-      <h1 className="page-title">Màu & kính · Cài đặt</h1>
+      <h1 className="page-title">Cài đặt</h1>
       <div className="dash" style={{ marginBottom: 16 }}>
         <div style={{ gridColumn: 'span 12' }}>
           <CloudPanel />
@@ -144,6 +145,33 @@ export default function Settings() {
             </label>
             <label className="field">Độ trong của kính: {Math.round(settings.glass * 100)}%
               <input type="range" min={0.15} max={0.95} step={0.01} value={settings.glass} onChange={(e) => setSettings({ glass: +e.target.value })} />
+            </label>
+          </div>
+        </div>
+        <div className="glass panel" style={{ gridColumn: 'span 6' }}>
+          <h3><BellRing size={18} /> Chuông báo nhắc việc</h3>
+          <div className="list">
+            <label className="field">Âm báo
+              <div className="row">
+                <select
+                  className="select grow"
+                  value={settings.alarmSound ?? 'bell'}
+                  onChange={(e) => setSettings({ alarmSound: e.target.value as S['alarmSound'] })}
+                >
+                  {ALARM_SOUNDS.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <button className="btn" onClick={() => noise.chime(settings.alarmSound ?? 'bell')} aria-label="Nghe thử">
+                  <Play size={15} /> Nghe thử
+                </button>
+              </div>
+            </label>
+            <label className="field row" style={{ justifyContent: 'space-between', cursor: 'pointer' }}>
+              <span>Lặp lại chuông (kêu 3 lần, cách nhau 4 giây)</span>
+              <input
+                type="checkbox"
+                checked={!!settings.alarmRepeat}
+                onChange={(e) => setSettings({ alarmRepeat: e.target.checked })}
+              />
             </label>
           </div>
         </div>

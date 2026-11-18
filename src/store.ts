@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { addDays } from 'date-fns'
 import { dkey, uid } from './lib/utils'
+import type { AlarmSound } from './lib/noise'
 
 export type Kind = 'product' | 'booking'
 export type Status = 'waiting' | 'stock' | 'posted'
@@ -89,6 +90,16 @@ export interface Settings {
   scene: 'forest' | 'dusk' | 'lake'
   /** ảnh nền do người dùng tải lên (data URL đã nén); rỗng = dùng khung cảnh có sẵn */
   customBg?: string
+  /** âm báo nhắc việc */
+  alarmSound?: AlarmSound
+  /** true: kêu 3 lần; false: kêu 1 lần */
+  alarmRepeat?: boolean
+}
+
+/** Tỷ giá USD → VND lấy tự động (xem lib/fx.ts). usdVnd = 0 nghĩa là chưa lấy được lần nào. */
+export interface Fx {
+  usdVnd: number
+  updatedAt: string // ISO datetime: thời điểm nguồn cập nhật tỷ giá
 }
 
 interface State {
@@ -100,6 +111,9 @@ interface State {
   projects: Project[]
   settings: Settings
   ideas: Idea[]
+  fx: Fx
+
+  setFx: (f: Partial<Fx>) => void
 
   upsertIdea: (i: Partial<Idea> & { id?: string }) => void
   removeIdea: (id: string) => void
@@ -184,7 +198,10 @@ export const useStore = create<State>()(
   persist(
     (set) => ({
       ...seed,
-      settings: { blur: 18, glass: 0.55, accent: '#6b1a24', scene: 'forest' },
+      settings: { blur: 18, glass: 0.55, accent: '#6b1a24', scene: 'forest', alarmSound: 'bell', alarmRepeat: false },
+      fx: { usdVnd: 0, updatedAt: '' },
+
+      setFx: (f) => set((s) => ({ fx: { ...s.fx, ...f } })),
 
       upsertItem: (i) =>
         set((s) => ({ items: upsert(s.items, i, () => ({ id: '', kind: 'product', title: '', brand: '', status: 'waiting' })) })),
