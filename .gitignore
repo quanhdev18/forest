@@ -2,3 +2,8 @@ node_modules
 dist
 .env.local
 tsconfig.tsbuildinfo
+
+# Server đăng TikTok (server/.env chứa API key, data/uploads là dữ liệu hàng đợi)
+server/.env
+server/data/
+server/uploads/

@@ -8,6 +8,7 @@ export function CloudPanel() {
 
   const statusText = {
     off: 'Chưa cấu hình Supabase',
+    checking: 'Đang kiểm tra đăng nhập…',
     'signed-out': 'Chưa đăng nhập. Dữ liệu chỉ lưu trên máy này.',
     idle: 'Đã đồng bộ',
     syncing: 'Đang đồng bộ…',
@@ -37,9 +38,9 @@ export function CloudPanel() {
 
       <div className="row" style={{ flexWrap: 'wrap' }}>
         {s.status === 'signed-out' && (
-          <button className="btn dark" onClick={signInWithGoogle}><LogIn size={15} /> Đăng nhập bằng Google</button>
+          <button className="btn dark" onClick={() => void signInWithGoogle()}><LogIn size={15} /> Đăng nhập bằng Google</button>
         )}
-        {s.status !== 'signed-out' && s.status !== 'off' && (
+        {s.status !== 'signed-out' && s.status !== 'off' && s.status !== 'checking' && (
           <>
             <button className="btn" onClick={pushNow} disabled={s.status === 'syncing'}>
               <RefreshCw size={15} /> Đồng bộ ngay

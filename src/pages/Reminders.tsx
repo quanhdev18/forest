@@ -53,7 +53,7 @@ export default function Reminders() {
   return (
     <>
       <div className="page-head">
-        <h1 className="page-title">Reminder</h1>
+        <h1 className="page-title">Nhắc nhở</h1>
         <div className="row">
           {perm !== 'granted' && typeof Notification !== 'undefined' && (
             <button className="btn" onClick={() => Notification.requestPermission().then(setPerm)}>

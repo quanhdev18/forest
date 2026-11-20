@@ -9,7 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.11.0",
+    "@google/genai": "^3.6.1",
     "@supabase/supabase-js": "^2.45.4",
+    "aws4fetch": "^1.0.20",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.453.0",
     "react": "^18.3.1",
@@ -17,6 +20,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

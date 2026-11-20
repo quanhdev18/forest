@@ -91,7 +91,7 @@ export default function Work() {
       paid = true
     }
     upsertItem({ id: it.id, status, paid })
-    useToasts.getState().push(`"${it.title}" → ${STATUS_LABEL[status]}${paid && !it.paid ? ' · đã ghi thu vào Finance' : ''}`)
+    useToasts.getState().push(`"${it.title}" → ${STATUS_LABEL[status]}${paid && !it.paid ? ' · đã ghi thu vào Tài chính' : ''}`)
   }
 
   const dropZone = (key: string, onDrop: () => void) => ({

@@ -64,7 +64,7 @@ export default function Relax() {
   return (
     <>
       <div className="page-head">
-        <h1 className="page-title">Relax</h1>
+        <h1 className="page-title">Thư giãn</h1>
         <div className="row">
           <Volume2 size={18} />
           <input type="range" min={0} max={1} step={0.01} value={r.master} onChange={(e) => r.setMaster(+e.target.value)} style={{ accentColor: 'var(--black)' }} aria-label="Âm lượng tổng" />

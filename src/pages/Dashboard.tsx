@@ -8,6 +8,7 @@ import { whenLabel } from './Reminders'
 import { useRelax } from './Relax'
 import { useSync } from '../lib/sync'
 import { cx, dkey, fmt, money } from '../lib/utils'
+import { VideoReport } from '../components/VideoReport'
 
 const go = (r: string) => (location.hash = '#/' + r)
 
@@ -38,7 +39,7 @@ function FxPanel() {
       </div>
       <div className="row" style={{ marginTop: 14 }}>
         <input
-          className="grow"
+          className="input grow"
           inputMode="decimal"
           value={usd}
           onChange={(e) => setUsd(e.target.value)}
@@ -92,6 +93,8 @@ export default function Dashboard() {
           <div className="muted small">Số dư tháng</div><div className="stat">{money(inc - out)}</div>
         </div>
 
+        <VideoReport />
+
         <div className="glass panel" style={{ gridColumn: 'span 4' }}>
           <h3><CalendarDays size={18} /> Hôm nay cần làm</h3>
           <div className="list">
@@ -136,7 +139,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass panel" style={{ gridColumn: 'span 8' }}>
+        <div className="glass panel" style={{ gridColumn: 'span 5' }}>
           <h3><Flame size={18} /> Thói quen hôm nay</h3>
           <div className="list">
             {habits.map((h) => {
@@ -161,13 +164,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass panel" style={{ gridColumn: 'span 4' }}>
+        <div className="glass panel" style={{ gridColumn: 'span 3' }}>
           <h3><Headphones size={18} /> Tập trung</h3>
           <p className="small muted" style={{ marginTop: 0 }}>Bật tiếng mưa để vào guồng làm việc.</p>
-          <button className={cx('btn', rainOn ? 'dark' : '')} onClick={() => relax.toggle('rain')}>
-            {rainOn ? <><Pause size={15} /> Tắt tiếng mưa</> : <><Play size={15} /> Phát tiếng mưa</>}
-          </button>
-          <button className="btn ghost" onClick={() => go('relax')}>Mở Relax →</button>
+          <div className="row" style={{ flexWrap: 'wrap', marginTop: 0 }}>
+            <button className={cx('btn', rainOn ? 'dark' : '')} onClick={() => relax.toggle('rain')}>
+              {rainOn ? <><Pause size={15} /> Tắt tiếng mưa</> : <><Play size={15} /> Phát tiếng mưa</>}
+            </button>
+            <button className="btn ghost" onClick={() => go('relax')}>Mở Thư giãn →</button>
+          </div>
         </div>
 
         <FxPanel />

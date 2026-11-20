@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { addDays } from 'date-fns'
 import { dkey, uid } from './lib/utils'
 import type { AlarmSound } from './lib/noise'
 
@@ -50,6 +49,8 @@ export interface Transaction {
   category: string
   date: string
   note: string
+  /** dự án của khoản thu/chi; trống = nhập riêng, không thuộc dự án */
+  projectId?: string
 }
 
 export interface Note {
@@ -66,6 +67,8 @@ export interface Project {
   status: 'idea' | 'doing' | 'done'
   x: number // % of canvas
   y: number
+  /** KPI: số video cần đăng mỗi tháng (0 / trống = không đặt KPI) */
+  kpiVideos?: number
 }
 
 export type IdeaStage = 'idea' | 'script' | 'shooting' | 'done'
@@ -139,6 +142,8 @@ interface State {
 
   setSettings: (s: Partial<Settings>) => void
   importAll: (data: Partial<State>) => void
+  /** Về dữ liệu mẫu ban đầu (dùng khi đăng xuất / đổi tài khoản trên cùng trình duyệt) */
+  resetAll: () => void
 }
 
 function upsert<T extends { id: string }>(list: T[], patch: Partial<T> & { id?: string }, make: () => T): T[] {
@@ -148,57 +153,24 @@ function upsert<T extends { id: string }>(list: T[], patch: Partial<T> & { id?: 
   return [...list, { ...make(), ...patch, id: patch.id ?? uid() }]
 }
 
-const today = new Date()
-const d = (n: number) => dkey(addDays(today, n))
-
+// Dữ liệu ban đầu: trống. Người dùng mới, hoặc sau khi đăng xuất, không thấy dữ liệu của ai.
 const seed = {
-  items: [
-    { id: uid(), kind: 'product', title: 'Kem dưỡng ban đêm', brand: "Kiehl's", status: 'waiting', date: d(2) },
-    { id: uid(), kind: 'product', title: 'Máy hút bụi cầm tay', brand: 'Dyson', status: 'waiting', date: d(4) },
-    { id: uid(), kind: 'product', title: 'Máy sấy tóc', brand: 'Laifen', status: 'stock', date: d(0) },
-    { id: uid(), kind: 'product', title: 'Bộ chăn ga cotton', brand: 'Muji', status: 'stock', date: d(1) },
-    { id: uid(), kind: 'product', title: 'Máy lọc không khí', brand: 'Sharp', status: 'stock', date: d(3) },
-    { id: uid(), kind: 'product', title: 'Máy pha cà phê cầm tay', brand: 'Cliton', status: 'posted', date: d(-3) },
-    { id: uid(), kind: 'booking', title: 'Tai nghe không dây', brand: 'Sony', status: 'stock', date: d(1), deadline: d(5), fee: 3500000, platform: 'TikTok' },
-    { id: uid(), kind: 'booking', title: 'Sữa rửa mặt dịu nhẹ', brand: 'Cetaphil', status: 'waiting', date: d(3), deadline: d(8), fee: 2000000, platform: 'Reels' },
-    { id: uid(), kind: 'booking', title: 'Nến thơm phòng ngủ', brand: 'Yankee', status: 'stock', date: d(-1), deadline: d(-1), fee: 1500000, platform: 'TikTok' },
-    { id: uid(), kind: 'booking', title: 'Loa Bluetooth mini', brand: 'Marshall', status: 'posted', date: d(-6), deadline: d(-5), fee: 4000000, platform: 'YouTube', paid: true },
-  ] as ContentItem[],
-  reminders: [
-    { id: uid(), title: 'Gửi bản nháp video cho brand Sony', at: new Date(today.getTime() + 2 * 3600e3).toISOString(), repeat: 'none', done: false },
-    { id: uid(), title: 'Uống nước', at: new Date(today.getTime() + 30 * 60e3).toISOString(), repeat: 'daily', done: false },
-  ] as Reminder[],
-  habits: [
-    { id: uid(), name: 'Đọc sách 20 phút', color: '#6b1a24', log: { [d(-1)]: true, [d(-2)]: true, [d(-3)]: true }, createdAt: d(-10) },
-    { id: uid(), name: 'Tập thể dục', color: '#1d1d1f', log: { [d(-1)]: true, [d(-3)]: true }, createdAt: d(-10) },
-    { id: uid(), name: 'Đăng 1 video', color: '#5d7f93', log: { [d(-2)]: true }, createdAt: d(-10) },
-  ] as Habit[],
-  transactions: [
-    { id: uid(), type: 'in', amount: 4000000, category: 'Booking', date: d(-5), note: 'Marshall – Loa Bluetooth mini' },
-    { id: uid(), type: 'in', amount: 850000, category: 'Affiliate', date: d(-2), note: 'Hoa hồng TikTok Shop' },
-    { id: uid(), type: 'out', amount: 320000, category: 'Đạo cụ', date: d(-1), note: 'Phông nền + đèn' },
-  ] as Transaction[],
-  notes: [
-    { id: uid(), text: 'Ý tưởng: series "1 tuần dùng thử" cho đồ gia dụng', pinned: true, updatedAt: new Date().toISOString() },
-  ] as Note[],
-  projects: [
-    { id: uid(), title: 'Web / App Forest', desc: 'Xây web quản lý nội dung & cuộc sống', status: 'doing', x: 28, y: 22 },
-    { id: uid(), title: 'Vlog decor phòng và khu vực giường ngủ', desc: 'Nhận hàng decor từ brand, quay vlog', status: 'idea', x: 70, y: 14 },
-    { id: uid(), title: 'Tiktok affiliate', desc: 'Phủ 3 video/tuần ngách nhà cửa', status: 'doing', x: 32, y: 72 },
-    { id: uid(), title: 'Threads - nhomusaigon', desc: 'Đăng ảnh đời sống Sài Gòn mỗi ngày', status: 'idea', x: 75, y: 62 },
-  ] as Project[],
-  ideas: [
-    { id: uid(), title: 'Review máy sấy tóc 3 ngày', script: 'Hook: "Mình dùng máy sấy này 3 ngày rồi…"\nQuay cận cảnh nút gió, so sánh với máy cũ.', stage: 'script', updatedAt: new Date().toISOString() },
-    { id: uid(), title: 'Góc decor phòng ngủ tối giản', script: '', stage: 'idea', updatedAt: new Date().toISOString() },
-    { id: uid(), title: 'Thử 5 loại cà phê dưới 100k', script: 'Quay buổi sáng, cắt nhịp nhanh.', stage: 'shooting', updatedAt: new Date().toISOString() },
-  ] as Idea[],
+  items: [] as ContentItem[],
+  reminders: [] as Reminder[],
+  habits: [] as Habit[],
+  transactions: [] as Transaction[],
+  notes: [] as Note[],
+  projects: [] as Project[],
+  ideas: [] as Idea[],
 }
+
+const defaultSettings: Settings = { blur: 18, glass: 0.55, accent: '#6b1a24', scene: 'forest', alarmSound: 'bell', alarmRepeat: false }
 
 export const useStore = create<State>()(
   persist(
     (set) => ({
       ...seed,
-      settings: { blur: 18, glass: 0.55, accent: '#6b1a24', scene: 'forest', alarmSound: 'bell', alarmRepeat: false },
+      settings: defaultSettings,
       fx: { usdVnd: 0, updatedAt: '' },
 
       setFx: (f) => set((s) => ({ fx: { ...s.fx, ...f } })),
@@ -256,6 +228,7 @@ export const useStore = create<State>()(
 
       setSettings: (p) => set((s) => ({ settings: { ...s.settings, ...p } })),
       importAll: (data) => set((s) => ({ ...s, ...data, ideas: data.ideas ?? [] })),
+      resetAll: () => set({ ...seed, settings: defaultSettings }),
     }),
     { name: 'forest-data-v1' },
   ),

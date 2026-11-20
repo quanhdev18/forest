@@ -16,7 +16,7 @@ export function ItemModal({ item, onClose }: { item: Partial<ContentItem>; onClo
     if (f.kind === 'booking' && f.status === 'posted' && f.fee && !paid) {
       upsertTx({ type: 'in', amount: f.fee, category: 'Booking', date: dkey(new Date()), note: `${f.brand} – ${f.title}` })
       paid = true
-      useToasts.getState().push(`Đã ghi thu ${f.fee.toLocaleString('vi-VN')} ₫ vào Finance`)
+      useToasts.getState().push(`Đã ghi thu ${f.fee.toLocaleString('vi-VN')} ₫ vào Tài chính`)
     }
     upsertItem({ ...f, paid, title: f.title.trim(), brand: f.brand?.trim() ?? '' })
     onClose()

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, CalendarDays, BellRing, CircleDollarSign, NotebookPen, Network, Trees,
-  Archive, Settings as Cog, Flame, Lightbulb,
+  Archive, Settings as Cog, Flame, Lightbulb, Send,
 } from 'lucide-react'
 import { useStore } from './store'
 import { ForestBg } from './components/ForestBg'
@@ -9,7 +9,7 @@ import { Toasts, useToasts } from './components/ui'
 import { useRelax } from './pages/Relax'
 import { noise } from './lib/noise'
 import { handleCallback } from './lib/spotify'
-import { initSync } from './lib/sync'
+import { initSync, useSync } from './lib/sync'
 import { startFxAutoRefresh } from './lib/fx'
 import { cx } from './lib/utils'
 import { addDays, addWeeks } from 'date-fns'
@@ -17,6 +17,7 @@ import { addDays, addWeeks } from 'date-fns'
 import Dashboard from './pages/Dashboard'
 import Work from './pages/Work'
 import Ideas from './pages/Ideas'
+import TikTok from './pages/TikTok'
 import Reminders from './pages/Reminders'
 import Habits from './pages/Habits'
 import Finance from './pages/Finance'
@@ -25,17 +26,19 @@ import Projects from './pages/Projects'
 import Relax from './pages/Relax'
 import Settings from './pages/Settings'
 import ArchivePage from './pages/Archive'
+import Login, { AuthSplash } from './pages/Login'
 
 const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, el: Dashboard },
   { id: 'work', label: 'Công việc', icon: CalendarDays, el: Work },
   { id: 'ideas', label: 'Ý tưởng', icon: Lightbulb, el: Ideas },
-  { id: 'reminder', label: 'Reminder', icon: BellRing, el: Reminders },
+  { id: 'tiktok', label: 'Đăng TikTok', icon: Send, el: TikTok },
+  { id: 'reminder', label: 'Nhắc nhở', icon: BellRing, el: Reminders },
   { id: 'habits', label: 'Thói quen', icon: Flame, el: Habits },
-  { id: 'finance', label: 'Finance', icon: CircleDollarSign, el: Finance },
-  { id: 'notes', label: 'Quick Note', icon: NotebookPen, el: Notes },
-  { id: 'project', label: 'Project', icon: Network, el: Projects },
-  { id: 'relax', label: 'Relax', icon: Trees, el: Relax },
+  { id: 'finance', label: 'Tài chính', icon: CircleDollarSign, el: Finance },
+  { id: 'notes', label: 'Ghi chú', icon: NotebookPen, el: Notes },
+  { id: 'project', label: 'Dự án', icon: Network, el: Projects },
+  { id: 'relax', label: 'Thư giãn', icon: Trees, el: Relax },
 ] as const
 const BOTTOM = [
   { id: 'archive', label: 'Lưu trữ', icon: Archive, el: ArchivePage },
@@ -90,12 +93,12 @@ function SideNote() {
     if (!text.trim()) return
     upsertNote({ text: text.trim(), pinned: false })
     setText('')
-    useToasts.getState().push('Đã lưu vào Quick Note')
+    useToasts.getState().push('Đã lưu vào Ghi chú')
   }
   return (
     <div className="side-note">
       <div className="row">
-        <span className="side-label" style={{ padding: '6px 2px' }}>Quick note</span>
+        <span className="side-label" style={{ padding: '6px 2px' }}>Ghi chú nhanh</span>
         <button onClick={save}>↵ Lưu</button>
       </div>
       <textarea
@@ -112,6 +115,7 @@ export default function App() {
   const route = useHashRoute()
   const settings = useStore((s) => s.settings)
   const playing = useRelax((s) => Object.keys(s.playing).length > 0)
+  const auth = useSync((s) => s.status)
   useReminderWatcher()
 
   useEffect(() => {
@@ -137,6 +141,17 @@ export default function App() {
       {n.id === 'relax' && playing && <span className="dot" title="Đang phát" />}
     </button>
   )
+
+  // Có Supabase thì bắt buộc đăng nhập mới vào app ('off' = chưa cấu hình, chạy chỉ trên máy như cũ)
+  if (auth === 'checking' || auth === 'signed-out') {
+    return (
+      <div className="app">
+        <ForestBg scene={settings.scene} />
+        {auth === 'checking' ? <AuthSplash /> : <Login />}
+        <Toasts />
+      </div>
+    )
+  }
 
   return (
     <div className="app">

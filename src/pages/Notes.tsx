@@ -13,7 +13,7 @@ export default function Notes() {
   return (
     <>
       <div className="page-head">
-        <h1 className="page-title">Quick Note</h1>
+        <h1 className="page-title">Ghi chú</h1>
         <div className="row">
           <div className="row btn" style={{ padding: '4px 12px' }}>
             <Search size={15} />

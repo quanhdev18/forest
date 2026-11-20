@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react'
 import { create } from 'zustand'
-import { Bell, X } from 'lucide-react'
+import { AlertCircle, Bell, CheckCircle2, X } from 'lucide-react'
 import { uid } from '../lib/utils'
 
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -19,7 +19,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   )
 }
 
-export type ToastKind = 'info' | 'reminder'
+export type ToastKind = 'info' | 'reminder' | 'success' | 'error'
 interface Toast { id: string; text: string; kind: ToastKind }
 
 /** Thông báo ở lại màn hình cho đến khi người dùng bấm vào đâu đó để ẩn */
@@ -53,7 +53,9 @@ export function Toasts() {
     <div className="toasts" role="status" aria-live="polite">
       {list.map((t) => (
         <div key={t.id} data-toast-id={t.id} className={`toast toast-${t.kind}`}>
-          <span className="toast-icon"><Bell size={t.kind === 'reminder' ? 20 : 16} /></span>
+          <span className="toast-icon">
+            {t.kind === 'success' ? <CheckCircle2 size={18} /> : t.kind === 'error' ? <AlertCircle size={18} /> : <Bell size={t.kind === 'reminder' ? 20 : 16} />}
+          </span>
           <span className="toast-text">{t.text}</span>
           <span className="toast-x" aria-hidden><X size={14} /></span>
         </div>

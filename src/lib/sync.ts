@@ -8,10 +8,13 @@ import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import { useStore } from '../store'
 import { supabase } from './supabase'
+import { logout as spotifyLogout } from './spotify'
+import { useToasts } from '../components/ui'
 
-export type SyncStatus = 'off' | 'signed-out' | 'idle' | 'syncing' | 'error'
+// checking: đang đọc phiên đăng nhập lúc mở app (chưa biết đã đăng nhập hay chưa)
+export type SyncStatus = 'off' | 'checking' | 'signed-out' | 'idle' | 'syncing' | 'error'
 export const useSync = create<{ status: SyncStatus; email?: string; name?: string; lastSyncedAt?: string; error?: string }>(() => ({
-  status: supabase ? 'signed-out' : 'off',
+  status: supabase ? 'checking' : 'off',
 }))
 
 // Trạng thái đồng bộ lưu theo từng trình duyệt
@@ -21,6 +24,22 @@ const loadMeta = (): Meta => {
   try { return { remoteAt: 0, dirtyAt: 0, ...JSON.parse(localStorage.getItem(META_KEY) ?? '{}') } } catch { return { remoteAt: 0, dirtyAt: 0 } }
 }
 const saveMeta = (m: Meta) => { try { localStorage.setItem(META_KEY, JSON.stringify(m)) } catch { /* bỏ qua */ } }
+
+// Dữ liệu trên trình duyệt thuộc tài khoản nào (id người dùng Supabase).
+// Dùng để không bao giờ đẩy dữ liệu của tài khoản A lên tài khoản B khi dùng chung một máy.
+const OWNER_KEY = 'forest-owner-v1'
+const getOwner = () => { try { return localStorage.getItem(OWNER_KEY) } catch { return null } }
+const setOwner = (id: string | null) => {
+  try { if (id) localStorage.setItem(OWNER_KEY, id); else localStorage.removeItem(OWNER_KEY) } catch { /* bỏ qua */ }
+}
+
+/** Xoá dữ liệu trên máy, về dữ liệu mẫu (không đánh dấu là "đã sửa" để không bị đẩy lên) */
+function clearLocalData() {
+  applying = true
+  useStore.getState().resetAll()
+  applying = false
+  saveMeta({ remoteAt: 0, dirtyAt: 0 })
+}
 
 const PICK = ['items', 'reminders', 'habits', 'transactions', 'notes', 'projects', 'settings', 'ideas'] as const
 const snapshot = () => {
@@ -88,11 +107,22 @@ async function reconcile() {
 
 async function handleSession(session: Session | null) {
   if (!session) {
+    const was = userId
     userId = null
+    // vừa bị đăng xuất (ở tab khác, hoặc phiên hết hạn): nếu đã đồng bộ hết thì xoá dữ liệu khỏi máy;
+    // còn thay đổi chưa đồng bộ thì giữ lại, chủ sở hữu vẫn là tài khoản cũ (đăng nhập lại sẽ đẩy lên)
+    if (was) {
+      if (!loadMeta().dirtyAt) { clearLocalData(); setOwner(null) }
+      else setOwner(was)
+    }
     return useSync.setState({ status: 'signed-out', email: undefined, name: undefined })
   }
   if (userId === session.user.id) return
   userId = session.user.id
+  // Dữ liệu trên máy đang là của tài khoản khác -> bỏ đi, tải dữ liệu của tài khoản này về
+  const owner = getOwner()
+  if (owner && owner !== userId) clearLocalData()
+  setOwner(userId)
   // Google trả tên trong user_metadata; nếu không có thì lấy phần trước @ của email
   const meta = session.user.user_metadata as { full_name?: string; name?: string } | undefined
   const name = meta?.full_name ?? meta?.name ?? session.user.email?.split('@')[0]
@@ -122,14 +152,34 @@ export async function initSync() {
   await handleSession(data.session)
 }
 
-export async function signInWithGoogle() {
-  if (!supabase) return
-  await supabase.auth.signInWithOAuth({
+/** Chuyển sang trang đăng nhập Google. Trả về thông báo lỗi nếu không mở được. */
+export async function signInWithGoogle(): Promise<string | null> {
+  if (!supabase) return 'Chưa cấu hình Supabase'
+  const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin + '/' },
+    options: { redirectTo: window.location.origin + '/', queryParams: { prompt: 'select_account' } },
   })
+  return error ? error.message : null
 }
 
+/**
+ * Đăng xuất: đẩy nốt thay đổi chưa đồng bộ, rồi xoá dữ liệu của tài khoản khỏi trình duyệt
+ * (để người dùng sau trên cùng máy không thấy được). Đăng nhập lại sẽ tải về từ đám mây.
+ */
 export async function signOutCloud() {
-  await supabase?.auth.signOut()
+  if (!supabase) return
+  if (userId && loadMeta().dirtyAt) {
+    if (timer) clearTimeout(timer)
+    await pushNow()
+    if (loadMeta().dirtyAt) {
+      useToasts.getState().push('Chưa đồng bộ được thay đổi mới nhất. Kiểm tra mạng rồi đăng xuất lại để không mất dữ liệu.', 'error')
+      return
+    }
+  }
+  // scope 'local': chỉ đăng xuất trình duyệt này (mặc định của Supabase là đăng xuất MỌI thiết bị)
+  await supabase.auth.signOut({ scope: 'local' })
+  userId = null
+  clearLocalData()
+  setOwner(null)
+  spotifyLogout() // tài khoản Spotify đang kết nối cũng ngắt khỏi trình duyệt này
 }
