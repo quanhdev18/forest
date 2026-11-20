@@ -41,7 +41,7 @@ export function Chip({ e, onClick }: { e: Entry; onClick: () => void }) {
       <button {...drag} className="chip due" onClick={(ev) => { ev.stopPropagation(); onClick() }} title={`Hạn đăng: ${item.title} – kéo để đổi hạn`}>
         <span className="ex">!</span>
         <div style={{ minWidth: 0 }}>
-          <b>Hạn đăng</b>
+          <b data-short="Hạn">Hạn đăng</b>
           <span style={{ display: 'block' }}>{item.title}</span>
         </div>
       </button>

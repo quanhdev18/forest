@@ -83,6 +83,13 @@ input, textarea, select { font: inherit; color: inherit; }
   width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.85); outline: none; font-size: 14px;
 }
 .input:focus, .textarea:focus, .select:focus { border-color: var(--ink-3); }
+/* iPhone/Safari: ô ngày giờ có giao diện riêng, bỏ qua width -> tràn khung. Ép về như ô nhập thường. */
+input[type="date"], input[type="datetime-local"], input[type="time"] {
+  -webkit-appearance: none; appearance: none;
+  display: block; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+  min-height: 40px; text-align: left;
+}
+input::-webkit-date-and-time-value { text-align: left; margin: 0; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -260,7 +267,12 @@ body { height: 100vh; height: 100dvh; }
   .day { padding: 5px 3px; border-radius: 6px; }
   .day .num { font-size: 12px; width: 20px; height: 20px; }
   .chip { font-size: 0; height: 6px; padding: 0; border-radius: 3px; }
-  .chip.due { display: block; height: 8px; border: 1px solid var(--wine); background: var(--wine-soft); }
+  /* hạn đăng: nhãn nhỏ đọc được (chữ "Hạn đăng" đủ cao, không bị cắt), tên bài ẩn đi cho gọn */
+  .chip.due { display: flex; align-items: center; height: auto; padding: 1px 4px; border: 1px solid var(--wine); background: var(--wine-soft); border-radius: 4px; }
+  .chip.due > div { min-width: 0; width: 100%; }
+  /* ô ngày trên điện thoại chỉ rộng ~30px: ghi ngắn "Hạn" thay cho "Hạn đăng" */
+  .chip.due b { font-size: 0; line-height: 1.3; white-space: nowrap; overflow: hidden; }
+  .chip.due b::after { content: attr(data-short); font-size: 9px; }
   .chip.due .ex { display: none; }
   .chip.due span { display: none; }
   .more { font-size: 10px; padding: 0; }
@@ -273,6 +285,8 @@ body { height: 100vh; height: 100dvh; }
   .modal .chip.due { display: flex; border: 0; }
   .modal .chip.due .ex { display: inline; }
   .modal .chip.due span { display: block; }
+  .modal .chip.due b { font-size: 9px; }
+  .modal .chip.due b::after { content: none; }
   .modal-actions { flex-wrap: wrap; }
 
   /* ô nhập 16px để iPhone không tự phóng to khi bấm */
